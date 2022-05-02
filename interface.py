@@ -203,7 +203,7 @@ class ModuleInterface:
             track_extra_kwargs=cache
         )
 
-    def get_track_info(self, track_id: int, quality_tier: QualityEnum, codec_options: CodecOptions, slug: str = None,
+    def get_track_info(self, track_id: int, quality_tier: QualityEnum, codec_options: CodecOptions,
                        data=None) -> TrackInfo:
         if data is None:
             data = {}
