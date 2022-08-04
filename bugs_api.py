@@ -234,7 +234,7 @@ class BugsApi:
         }).get('result')
 
     def get_search(self, query: str):
-        return self._make_call('GET', 'multi/invoke/map', json=[{
+        return self._make_call('POST', 'multi/invoke/map', json=[{
             "id": "get_search_combine",
             "args": {
                 "query": query
