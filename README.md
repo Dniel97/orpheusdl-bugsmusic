@@ -12,14 +12,14 @@ A Bugs! module for the OrpheusDL modular archival music program
 
 ## Table of content
 
-- [About OrpheusDL - Bugs!](#about-orpheusdl---bugs)
+- [About OrpheusDL - Bugs!](#about-orpheusdl---bugs!)
 - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
     - [Global](#global)
-    - [Bugs](#bugs)
+    - [Bugs!](#bugs!)
 - [Contact](#contact)
 
 

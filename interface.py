@@ -249,6 +249,14 @@ class ModuleInterface:
                 highest_quality = quality
                 break
 
+        # request the track url with the highest quality in available qualities, because the rights are not always
+        # correct, therefore we need to check the actual quality of the returned stream
+        stream_data = self.session.get_stream(track_id, highest_quality)
+        if stream_data.get('state') != 'OK':
+            error = 'Requested quality tier is currently not available, try again later'
+
+        actual_quality = stream_data.get('bitrate')
+
         # get the bitrate based on the highest quality, why has aac256 not 256kbit/s?!
         bitrate = {
             'flac24': 2116,
@@ -256,7 +264,7 @@ class ModuleInterface:
             'aac256': 320,
             '320k': 320,
             'aac': 128,
-        }[highest_quality]
+        }.get(actual_quality, None)
 
         # get the codec based on the highest quality
         codec = {
@@ -265,13 +273,13 @@ class ModuleInterface:
             'aac256': CodecEnum.AAC,
             '320k': CodecEnum.MP3,
             'aac': CodecEnum.AAC,
-        }[highest_quality]
+        }.get(actual_quality, None)
 
         # https://en.wikipedia.org/wiki/Audio_bit_depth#cite_ref-1
         bit_depth = {
             'flac24': 24,
             'flac': 16
-        }.get(highest_quality, None)
+        }.get(actual_quality, None)
 
         track_info = TrackInfo(
             name=track_data.get('track_title'),
@@ -286,18 +294,14 @@ class ModuleInterface:
             cover_url=self._generate_artwork_url(album_data.get('image').get('path'), size=self.cover_size),
             tags=tags,
             codec=codec,
-            download_extra_kwargs={'track_id': track_id, 'quality_tier': highest_quality},
+            download_extra_kwargs={'file_url': stream_data.get('url')},
             error=error
         )
 
         return track_info
 
-    def get_track_download(self, track_id: str or int, quality_tier: str) -> TrackDownloadInfo:
-        stream_data = self.session.get_stream(track_id, quality_tier)
-        if stream_data.get('state') != 'OK':
-            raise Exception('Requested quality tier is currently not available, try again later')
-
-        return TrackDownloadInfo(download_type=DownloadEnum.URL, file_url=stream_data.get('url'))
+    def get_track_download(self, file_url: str) -> TrackDownloadInfo:
+        return TrackDownloadInfo(download_type=DownloadEnum.URL, file_url=file_url)
 
     def get_track_lyrics(self, track_id: str or int) -> LyricsInfo:
         # get lyrics data for current track id
