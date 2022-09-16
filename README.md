@@ -12,14 +12,14 @@ A Bugs! module for the OrpheusDL modular archival music program
 
 ## Table of content
 
-- [About OrpheusDL - Bugs!](#about-orpheusdl---bugs!)
+- [About OrpheusDL - Bugs!](#about-orpheusdl---bugs)
 - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
     - [Global](#global)
-    - [Bugs!](#bugs!)
+    - [Bugs!](#bugs)
 - [Contact](#contact)
 
 
@@ -49,7 +49,7 @@ Follow these steps to get a local copy of Orpheus up and running:
    ```sh
    python orpheus.py
    ```
-3. Now the `config/settings.json` file should be updated with the Bugs! settings
+3. Now the `config/settings.json` file should be updated with the [Bugs!](#bugs) settings
 
 <!-- USAGE EXAMPLES -->
 ## Usage
@@ -100,13 +100,13 @@ artwork will be downloaded.
     "password": ""
 }
 ```
-`username`: Enter your Bugs! email/username address here
+`username`: Enter your Bugs! email address here
 
 `password`: Enter your Bugs! password here
 
-**Note:** Only VIP accounts are currently supported.
+**Note:** Only Streaming ("Phone Only"/Premium) accounts are currently supported.
 
-**Note:** Playlists are not (yet) supported.
+**Note:** Playlists are not (yet?) supported.
 
 <!-- Contact -->
 ## Contact

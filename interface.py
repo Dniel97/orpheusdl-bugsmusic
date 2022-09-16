@@ -53,6 +53,7 @@ class ModuleInterface:
             'expires': module_controller.temporary_settings_controller.read('expires')
         }
 
+        self.account_flac_premium = False
         self.session.set_session(session)
 
         if session['access_token'] and session['expires'] > datetime.now():
@@ -88,8 +89,14 @@ class ModuleInterface:
     def valid_account(self):
         # get the subscription from the API and check if it's at least a "VIP" subscription
         account_data = self.session.get_account()
-        if account_data and account_data.get('member_level').get('level') != 'VIP':
-            raise self.exception('You need a VIP account to use this module')
+        if account_data:
+            subscription = account_data.get('stream')
+            # save the "Premium" subscription status
+            self.account_flac_premium = subscription.get('is_flac_premium')
+
+            # also check subscription.get('is_premium')?
+            if not subscription.get('is_cellular_flac') and not subscription.get('is_premium'):
+                raise self.exception('You need a Streaming ("Phone only"/Premium) subscription to use this module')
 
     @staticmethod
     def _generate_artwork_url(cover_path: str, size: int, max_size=3000):
@@ -239,6 +246,9 @@ class ModuleInterface:
         if not track_data.get('rights').get('streaming').get('service_yn'):
             error = f'Track "{track_data.get("track_title")}" is not streamable!'
 
+        # check if "Premium" is required to stream the flac file
+        needs_premium_flac = track_data.get('rights').get('streaming').get('flac_premium_yn')
+
         # set default highest_quality to lowest (aac)
         highest_quality = self.quality_order[-1]
         # iterate over the quality order and check if the track is available in that quality
@@ -246,16 +256,13 @@ class ModuleInterface:
             quality = self.quality_order[i]
             # if the track is available in that quality, set it as the highest quality and break
             if quality in track_data.get('bitrates'):
+                # if the track requires "Premium" to stream the flac file and the user do not have premium,
+                # skip the flac
+                if 'flac' in quality and needs_premium_flac and not self.account_flac_premium:
+                    continue
+
                 highest_quality = quality
                 break
-
-        # request the track url with the highest quality in available qualities, because the rights are not always
-        # correct, therefore we need to check the actual quality of the returned stream
-        stream_data = self.session.get_stream(track_id, highest_quality)
-        if stream_data.get('state') != 'OK':
-            error = 'Requested quality tier is currently not available, try again later'
-
-        actual_quality = stream_data.get('bitrate')
 
         # get the bitrate based on the highest quality, why has aac256 not 256kbit/s?!
         bitrate = {
@@ -264,7 +271,7 @@ class ModuleInterface:
             'aac256': 320,
             '320k': 320,
             'aac': 128,
-        }.get(actual_quality, None)
+        }.get(highest_quality, None)
 
         # get the codec based on the highest quality
         codec = {
@@ -273,13 +280,13 @@ class ModuleInterface:
             'aac256': CodecEnum.AAC,
             '320k': CodecEnum.MP3,
             'aac': CodecEnum.AAC,
-        }.get(actual_quality, None)
+        }.get(highest_quality, None)
 
         # https://en.wikipedia.org/wiki/Audio_bit_depth#cite_ref-1
         bit_depth = {
             'flac24': 24,
             'flac': 16
-        }.get(actual_quality, None)
+        }.get(highest_quality, None)
 
         track_info = TrackInfo(
             name=track_data.get('track_title'),
@@ -289,19 +296,26 @@ class ModuleInterface:
             artist_id=track_data.get('artists')[0].get('artist_id'),
             release_year=release_year,
             bitrate=bitrate,
+            # convert MM:SS to seconds
+            duration=sum(int(x) * 60 ** i for i, x in
+                         enumerate(reversed(track_data.get('len').split(':')))) if track_data.get('len') else None,
             sample_rate=44.1,
             bit_depth=bit_depth,
             cover_url=self._generate_artwork_url(album_data.get('image').get('path'), size=self.cover_size),
             tags=tags,
             codec=codec,
-            download_extra_kwargs={'file_url': stream_data.get('url')},
+            download_extra_kwargs={'track_id': track_id, 'quality_tier': highest_quality},
             error=error
         )
 
         return track_info
 
-    def get_track_download(self, file_url: str) -> TrackDownloadInfo:
-        return TrackDownloadInfo(download_type=DownloadEnum.URL, file_url=file_url)
+    def get_track_download(self, track_id: str or int, quality_tier: str) -> TrackDownloadInfo:
+        stream_data = self.session.get_stream(track_id, quality_tier)
+        if stream_data.get('state') != 'OK':
+            raise self.exception('Requested quality tier is currently not available, try again later')
+
+        return TrackDownloadInfo(download_type=DownloadEnum.URL, file_url=stream_data.get('url'))
 
     def get_track_lyrics(self, track_id: str or int) -> LyricsInfo:
         # get lyrics data for current track id
