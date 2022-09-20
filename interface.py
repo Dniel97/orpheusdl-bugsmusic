@@ -87,10 +87,11 @@ class ModuleInterface:
         self.module_controller.temporary_settings_controller.set('expires', self.session.expires)
 
     def valid_account(self):
-        # get the subscription from the API and check if it's at least a "VIP" subscription
+        # get the subscription from the API and check if it's at least a "Streaming" subscription
         account_data = self.session.get_account()
         if account_data:
-            subscription = account_data.get('stream')
+            # fallback if no subscription exists
+            subscription = account_data.get('stream') or {}
             # save the "Premium" subscription status
             self.account_flac_premium = subscription.get('is_flac_premium')
 
