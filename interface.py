@@ -239,7 +239,8 @@ class ModuleInterface:
             total_discs=album_data.get('disc_count'),
             genres=[genre.get('svc_nm') for genre in album_data.get('genres')] if album_data.get('genres') else None,
             release_date=release_date,
-            copyright=f'© {release_year} {album_data.get("labels")[0].get("label_nm")}',
+            copyright=f'© {release_year} '
+                      f'{album_data.get("labels")[0].get("label_nm")}' if album_data.get("labels") else None,
             replay_gain=track_data.get('track_gain'),
         )
 
