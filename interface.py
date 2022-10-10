@@ -100,6 +100,11 @@ class ModuleInterface:
                 raise self.exception('You need a Streaming ("Phone only"/Premium) subscription to use this module')
 
     @staticmethod
+    def convert_duration_str_to_secs(duration: str) -> int:
+        # convert MM:SS (string) to seconds (int)
+        return sum(int(x) * 60 ** i for i, x in enumerate(reversed(duration.split(':'))))
+
+    @staticmethod
     def _generate_artwork_url(cover_path: str, size: int, max_size=3000):
         # not the best idea, but it rounds the self.cover_size to the nearest number in supported_sizes, 3001 is needed
         # for the "uncompressed" cover
@@ -111,6 +116,9 @@ class ModuleInterface:
 
     @staticmethod
     def _generate_animated_artwork_url(live_cover_path: str):
+        if live_cover_path is None:
+            return None
+
         return f'https://image.bugsm.co.kr/livealbum/images/original/{live_cover_path}'
 
     def search(self, query_type: DownloadTypeEnum, query: str, track_info: TrackInfo = None, limit: int = 20):
@@ -122,12 +130,14 @@ class ModuleInterface:
         items = []
         for i in results.get(query_type.name).get('list'):
             additional = []
+            duration = None
             if query_type is DownloadTypeEnum.track:
                 name = i.get('track_title')
                 result_id = i.get('track_id')
 
                 artists = [a.get('artist_nm') for a in i.get('artists')]
                 year = i.get('album').get('release_ymd')[:4] if i.get('album').get('release_ymd') else None
+                duration = self.convert_duration_str_to_secs(i.get('len')) if i.get('len') else None
 
                 additional.append('LOSSLESS') if i.get('rights').get('download_flac').get('service_flac_yn') else None
             elif query_type is DownloadTypeEnum.album:
@@ -149,6 +159,7 @@ class ModuleInterface:
                 name=name,
                 artists=artists,
                 year=year,
+                duration=duration,
                 result_id=result_id,
                 additional=additional if additional != [] else None,
                 extra_kwargs={'data': {i.get('id'): i}}
@@ -209,8 +220,7 @@ class ModuleInterface:
             name=album_info.get('title'),
             release_year=album_info.get('release_ymd')[:4] if album_info.get('release_ymd') else None,
             cover_url=self._generate_artwork_url(album_info.get('image').get('path'), size=self.cover_size),
-            animated_cover_url=self._generate_animated_artwork_url(
-                album_info.get('live_image').get('path')) if album_info.get('live_image') else None,
+            animated_cover_url=self._generate_animated_artwork_url(album_info.get('live_image', {}).get('path')),
             artist=album_info.get('artists')[0].get('artist_nm'),
             artist_id=album_info.get('artists')[0].get('artist_id'),
             tracks=[t.get('track_id') for t in tracks],
@@ -304,14 +314,11 @@ class ModuleInterface:
             artist_id=track_data.get('artists')[0].get('artist_id'),
             release_year=release_year,
             bitrate=bitrate,
-            # convert MM:SS to seconds
-            duration=sum(int(x) * 60 ** i for i, x in
-                         enumerate(reversed(track_data.get('len').split(':')))) if track_data.get('len') else None,
+            duration=self.convert_duration_str_to_secs(track_data.get('len')) if track_data.get('len') else None,
             sample_rate=44.1,
             bit_depth=bit_depth,
             cover_url=self._generate_artwork_url(album_data.get('image').get('path'), size=self.cover_size),
-            # animated_cover_url=self._generate_animated_artwork_url(
-            #     album_data.get('live_image').get('path')) if album_data.get('live_image') else None,
+            # animated_cover_url=self._generate_animated_artwork_url(album_data.get('live_image').get('path')),
             tags=tags,
             codec=codec,
             download_extra_kwargs={'track_id': track_id, 'quality_tier': highest_quality},
