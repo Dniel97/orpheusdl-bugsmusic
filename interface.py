@@ -128,7 +128,7 @@ class ModuleInterface:
         results = self.session.get_search(query)[0].get('get_search_combine').get('result')
 
         items = []
-        for i in results.get(query_type.name).get('list'):
+        for i in results.get(query_type.name).get('list', []) or []:
             additional = []
             duration = None
             if query_type is DownloadTypeEnum.track:
