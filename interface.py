@@ -319,6 +319,18 @@ class ModuleInterface:
 
         return TrackDownloadInfo(download_type=DownloadEnum.URL, file_url=stream_data.get('url'))
 
+    def get_track_cover(self, track_id: str, cover_options: CoverOptions, data=None) -> CoverInfo:
+        if data is None:
+            data = {}
+
+        track_data = data[track_id] if track_id in data else self.session.get_track(
+            track_id)[0].get('track').get('result')
+        cover_path = track_data.get('album').get('image').get('path')
+
+        # Bugs only support JPG?
+        cover_url = self._generate_artwork_url(cover_path, size=cover_options.resolution)
+        return CoverInfo(url=cover_url, file_type=ImageFileTypeEnum.jpg)
+
     def get_track_lyrics(self, track_id: str or int) -> LyricsInfo:
         # get lyrics data for current track id
         lyrics_data = self.session.get_lyrics(track_id)
