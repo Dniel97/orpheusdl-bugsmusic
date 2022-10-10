@@ -109,6 +109,10 @@ class ModuleInterface:
         cover_size = best_size if best_size <= max_size else 'original'
         return f'https://image.bugsm.co.kr/album/images/{cover_size}{cover_path}'
 
+    @staticmethod
+    def _generate_animated_artwork_url(live_cover_path: str):
+        return f'https://image.bugsm.co.kr/livealbum/images/original/{live_cover_path}'
+
     def search(self, query_type: DownloadTypeEnum, query: str, track_info: TrackInfo = None, limit: int = 20):
         if query_type is DownloadTypeEnum.playlist:
             raise self.exception(f'Query type "{query_type.name}" is not supported!')
@@ -205,6 +209,8 @@ class ModuleInterface:
             name=album_info.get('title'),
             release_year=album_info.get('release_ymd')[:4] if album_info.get('release_ymd') else None,
             cover_url=self._generate_artwork_url(album_info.get('image').get('path'), size=self.cover_size),
+            animated_cover_url=self._generate_animated_artwork_url(
+                album_info.get('live_image').get('path')) if album_info.get('live_image') else None,
             artist=album_info.get('artists')[0].get('artist_nm'),
             artist_id=album_info.get('artists')[0].get('artist_id'),
             tracks=[t.get('track_id') for t in tracks],
@@ -304,6 +310,8 @@ class ModuleInterface:
             sample_rate=44.1,
             bit_depth=bit_depth,
             cover_url=self._generate_artwork_url(album_data.get('image').get('path'), size=self.cover_size),
+            # animated_cover_url=self._generate_animated_artwork_url(
+            #     album_data.get('live_image').get('path')) if album_data.get('live_image') else None,
             tags=tags,
             codec=codec,
             download_extra_kwargs={'track_id': track_id, 'quality_tier': highest_quality},
